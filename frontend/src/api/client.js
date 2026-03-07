@@ -1,10 +1,7 @@
-// src/api/client.js
 import axios from "axios";
 
-// ถ้ามีตั้งค่าใน .env (Vite) ก็ใช้ค่าจาก env ก่อน ไม่มีก็ fallback เป็น localhost:8000
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
-// instance หลักของ axios ที่ fix baseURL ไปที่ backend
 const apiClient = axios.create({
   baseURL: API_BASE,
 });
@@ -17,7 +14,6 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// รวมฟังก์ชันเรียก API ทั้งหมด
 export const api = {
   // ---------- Login ----------
   login: (body) => apiClient.post("/login", body),
@@ -64,7 +60,6 @@ export const api = {
   deleteNode: (id) =>
     apiClient.delete(`/nodes/${id}`),
 
-  // ❗ สำคัญ: ตรงกับ backend `/nodes/{node_id}/position`
   updateNodePosition: (id, pos) =>
     apiClient.patch(`/nodes/${id}/position`, pos),
 
@@ -86,7 +81,6 @@ export const api = {
   deleteEdge: (id) =>
     apiClient.delete(`/edges/${id}`),
 
-  // ใช้เวลาอยากลบ edge ทั้งหมดที่เกี่ยวกับ node ตัวหนึ่ง
   deleteEdgesOfNode: (nodeId) =>
     apiClient.delete(`/edges/node/${nodeId}`),
 
