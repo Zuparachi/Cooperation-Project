@@ -369,9 +369,9 @@ async def log_exceptions(request: Request, call_next):
 # ------------------------------------------
 # Startup
 # ------------------------------------------
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(auto_monitor_loop())
+# @app.on_event("startup")
+# async def startup_event():
+#     asyncio.create_task(auto_monitor_loop())
 
 
 # ------------------------------------------
@@ -888,6 +888,57 @@ async def packet_test(
         hops=hops,
     )
 
+# ------------------------------------------
+# PROBE API
+# ------------------------------------------
+
+class ProbeStatusItem(BaseModel):
+    node_id: str
+    status: str
+
+class ProbeBatchUpdate(BaseModel):
+    items: List[ProbeStatusItem]
+
+
+@app.get("/probe/nodes")
+async def get_probe_nodes():
+    """
+    ให้ probe agent ดึงรายการ node ที่ต้องตรวจ
+    ยกเว้น device_type = pc
+    """
+    nodes = await db.nodes.find({"device_type": {"$ne": "pc"}}).to_list(None)
+
+    result = []
+    for n in nodes:
+        result.append({
+            "id": str(n["_id"]),
+            "name": n.get("name"),
+            "ip": n.get("ip"),
+            "device_type": n.get("device_type"),
+        })
+
+    return result
+
+
+@app.post("/probe/update-batch")
+async def update_probe_batch(body: ProbeBatchUpdate):
+    """
+    รับผลการตรวจจาก probe แล้ว update MongoDB
+    """
+    now = datetime.utcnow()
+
+    for item in body.items:
+        await db.nodes.update_one(
+            {"_id": ObjectId(item.node_id)},
+            {
+                "$set": {
+                    "status": item.status,
+                    "last_seen": now
+                }
+            }
+        )
+
+    return {"ok": True, "updated": len(body.items)}
 
 # ------------------------------------------
 # CORS
