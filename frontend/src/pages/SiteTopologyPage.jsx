@@ -221,54 +221,55 @@ export default function SiteTopologyPage() {
 
   const deleteNode = async (id) => { if (!confirm("Delete this node?")) return; await api.deleteNode(id); loadContext(); };
   const deleteEdge = async (edgeId) => { if (!edgeId) return alert("ยังไม่ได้เลือกเส้น"); if (!confirm("Delete this edge?")) return; await api.deleteEdge(edgeId); loadContext(); };
+  // Disabled packet test in server deployment//
 
-  const sendTestPacket = useCallback(async () => {
-    if (!testSource || !testTarget) {
-      alert("กรุณาเลือก Source และ Target Node ก่อน (คลิกขวา → Set as Source/Target)");
-      return;
-    }
+  // const sendTestPacket = useCallback(async () => {
+  //   if (!testSource || !testTarget) {
+  //     alert("กรุณาเลือก Source และ Target Node ก่อน (คลิกขวา → Set as Source/Target)");
+  //     return;
+  //   }
 
-    try {
-      const res = await api.testPacketPath(
-        testSource.id,
-        testTarget.id,
-        level,
-        parentId
-      );
+  //   try {
+  //     const res = await api.testPacketPath(
+  //       testSource.id,
+  //       testTarget.id,
+  //       level,
+  //       parentId
+  //     );
 
-      setTestResult(res.data);
+  //     setTestResult(res.data);
 
-      // highlight edges ตาม path ที่ backend ส่งมา (optional)
-      const pathIds = res.data.path_node_ids || [];
-      setRfEdges((eds) => {
-        const pathEdgeSet = new Set();
-        for (let i = 1; i < pathIds.length; i++) {
-          const a = pathIds[i - 1];
-          const b = pathIds[i];
-          eds.forEach((e) => {
-            if (
-              (e.source === a && e.target === b) ||
-              (e.source === b && e.target === a)
-            ) {
-              pathEdgeSet.add(e.id);
-            }
-          });
-        }
+  //     // highlight edges ตาม path ที่ backend ส่งมา (optional)
+  //     const pathIds = res.data.path_node_ids || [];
+  //     setRfEdges((eds) => {
+  //       const pathEdgeSet = new Set();
+  //       for (let i = 1; i < pathIds.length; i++) {
+  //         const a = pathIds[i - 1];
+  //         const b = pathIds[i];
+  //         eds.forEach((e) => {
+  //           if (
+  //             (e.source === a && e.target === b) ||
+  //             (e.source === b && e.target === a)
+  //           ) {
+  //             pathEdgeSet.add(e.id);
+  //           }
+  //         });
+  //       }
 
-        return eds.map((e) => ({
-          ...e,
-          style: {
-            ...e.style,
-            stroke: pathEdgeSet.has(e.id) ? "#f97316" : "#94a3b8",
-            strokeWidth: pathEdgeSet.has(e.id) ? 3 : 2,
-          },
-        }));
-      });
-    } catch (err) {
-      console.error("sendTestPacket error", err);
-      alert("เกิดข้อผิดพลาดระหว่างทดสอบ packet");
-    }
-  }, [testSource, testTarget, level, parentId, setRfEdges]);
+  //       return eds.map((e) => ({
+  //         ...e,
+  //         style: {
+  //           ...e.style,
+  //           stroke: pathEdgeSet.has(e.id) ? "#f97316" : "#94a3b8",
+  //           strokeWidth: pathEdgeSet.has(e.id) ? 3 : 2,
+  //         },
+  //       }));
+  //     });
+  //   } catch (err) {
+  //     console.error("sendTestPacket error", err);
+  //     alert("เกิดข้อผิดพลาดระหว่างทดสอบ packet");
+  //   }
+  // }, [testSource, testTarget, level, parentId, setRfEdges]);
 
   const connectSSH = useCallback(() => {
     if (!menuNodeId) {
@@ -316,7 +317,7 @@ export default function SiteTopologyPage() {
                 <ChevronLeft className="w-4 h-4" /> Back
               </button>
             )}
-              <button
+              {/* <button
                 onClick={() => {
                   if (!testMode) {
                     setTestMode(true);
@@ -337,7 +338,7 @@ export default function SiteTopologyPage() {
                 }`}
               >
                 {testMode ? "Exit Test Packet" : "Test Packet Mode"}
-              </button>           
+              </button>            */}
             <h1 className="text-xl font-semibold">
               {level === "site" && `Site: ${site?.site_name ?? ""}`}
               {level === "building" && ` ${selectedBuilding?.name}`}
@@ -419,114 +420,7 @@ export default function SiteTopologyPage() {
               <Background gap={16} size={1} />
             </ReactFlow>
           </div>
-          {testMode && (
-            <aside className="w-80 border bg-white rounded-md shadow-sm flex flex-col">
-              <div className="px-4 py-3 border-b flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-700">
-                  Test Packet
-                </span>
-                <button
-                  className="text-xs text-red-500"
-                  onClick={() => {
-                    setTestMode(false);
-                    setTestSource(null);
-                    setTestTarget(null);
-                    setTestResult(null);
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-
-              <div className="p-3 space-y-2 border-b text-xs">
-                <div>
-                  <div className="font-medium text-slate-600">Source:</div>
-                  <div className="text-slate-800 mb-1">
-                    {testSource
-                      ? `${testSource.data.name} (${testSource.data.ip})`
-                      : "-"}
-                  </div>
-                  <button
-                    className="px-2 py-1 text-xs rounded bg-slate-200 hover:bg-slate-300 disabled:bg-slate-100 disabled:text-slate-400"
-                    disabled={!selectedNode}
-                    onClick={() => {
-                      if (!selectedNode) return;
-                      setTestSource(selectedNode);
-                    }}
-                  >
-                    Set as Source (from selected node)
-                  </button>
-                </div>
-                <div>
-                  <div className="font-medium text-slate-600">Target:</div>
-                  <div className="text-slate-800 mb-1">
-                    {testTarget
-                      ? `${testTarget.data.name} (${testTarget.data.ip})`
-                      : "-"}
-                  </div>
-                  <button
-                    className="px-2 py-1 text-xs rounded bg-slate-200 hover:bg-slate-300 disabled:bg-slate-100 disabled:text-slate-400"
-                    disabled={!selectedNode}
-                    onClick={() => {
-                      if (!selectedNode) return;
-                      setTestTarget(selectedNode);
-                    }}
-                  >
-                    Set as Target (from selected node)
-                  </button>
-                </div>
-
-                <button
-                  className="mt-2 w-full py-1.5 rounded bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-400 disabled:bg-slate-300"
-                  disabled={!testSource || !testTarget}
-                  onClick={sendTestPacket}
-                >
-                  Send Test Packet (Real Ping)
-                </button>
-                {selectedNode && (
-                  <div className="text-[11px] text-slate-500">
-                    Current selected node: {selectedNode.data.name} ({selectedNode.data.ip})
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1 p-3 text-xs font-mono bg-slate-900 text-slate-100 overflow-auto">
-                {!testResult ? (
-                  <div className="text-slate-400">No logs yet.</div>
-                ) : testResult.hops.length === 0 ? (
-                  <div>
-                    Start test from {testResult.source_name} to{" "}
-                    {testResult.target_name}
-                    {"\n"}
-                    No path found in topology.
-                    {"\n"}
-                    Result: FAIL
-                  </div>
-                ) : (
-                  <>
-                    <div className="mb-2">
-                      Start test from {testResult.source_name} to{" "}
-                      {testResult.target_name}
-                    </div>
-                    {testResult.hops.map((h, idx) => (
-                      <div key={idx} className="mb-3">
-                        <div>
-                          Hop {idx + 1}: {h.from_name} → {h.to_name} ({h.to_ip}){" "}
-                          {h.ping_ok ? "✅" : "❌"}
-                        </div>
-                        <pre className="mt-1 whitespace-pre-wrap text-[11px] text-slate-300">
-                          {h.ping_output}
-                        </pre>
-                      </div>
-                    ))}
-                    <div className="mt-2 font-semibold">
-                      Result: {testResult.ok ? "SUCCESS" : "FAIL"}
-                    </div>
-                  </>
-                )}
-              </div>
-            </aside>
-          )}
+         
         </div>
       </div>
       
